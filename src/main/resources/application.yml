@@ -1,0 +1,88 @@
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-stacktrace: never
+    include-message: never
+
+spring:
+  application:
+    name: employees-api
+  # In-memory database: created on startup and wiped on shutdown.
+  datasource:
+    url: jdbc:h2:mem:employeesdb;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        # Needed to reach it from outside a Docker container; Spring Security still asks for credentials.
+        web-allow-others: true
+
+  security:
+    user:
+      # Always override these in any shared environment (see README).
+      name: ${API_USERNAME:invex}
+      password: ${API_PASSWORD:invex-local-only}
+
+  jackson:
+    deserialization:
+      # POST /employees accepts a single object or an array with the same endpoint.
+      accept-single-value-as-array: true
+      # A typo like "fristName" should fail loudly instead of being silently ignored.
+      fail-on-unknown-properties: true
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: America/Mexico_City
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    description: Employee management microservice
+    version: '@project.version@'
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%X{requestId:-no-request}] [%thread] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%X{requestId:-no-request}] [%thread] %logger{36} - %msg%n"
+  file:
+    name: ${LOG_FILE:logs/employees-api.log}
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 7
+  level:
+    root: INFO
+    com.invex.employees: DEBUG
+    org.hibernate.SQL: WARN
