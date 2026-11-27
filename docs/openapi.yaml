@@ -1,0 +1,486 @@
+openapi: 3.0.1
+info:
+  title: Employees API
+  description: "Microservice to manage employees: CRUD operations, batch creation\
+    \ and search by name. Dates use the format dd-MM-yyyy. All endpoints require HTTP\
+    \ Basic authentication."
+  contact:
+    name: Erik
+  version: 1.0.0
+servers:
+- url: http://localhost:8080
+  description: Generated server url
+tags:
+- name: Employees
+  description: "Create, read, update, delete and search employees"
+paths:
+  /employees/{id}:
+    get:
+      tags:
+      - Employees
+      summary: Get an employee by id
+      operationId: findById
+      parameters:
+      - name: id
+        in: path
+        description: Employee id
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      responses:
+        "500":
+          description: Unexpected error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Employee not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Missing or invalid credentials
+        "400":
+          description: The id is not a number
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "200":
+          description: Employee found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeResponse'
+      security:
+      - basicAuth: []
+    put:
+      tags:
+      - Employees
+      summary: Update an employee
+      description: Updates all or some fields. Fields not sent (or sent as null) keep
+        their current value. The id and the creation timestamp cannot be changed.
+      operationId: update
+      parameters:
+      - name: id
+        in: path
+        description: Employee id
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeUpdateRequest'
+        required: true
+      responses:
+        "500":
+          description: Unexpected error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Employee not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Missing or invalid credentials
+        "400":
+          description: Invalid or malformed data
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "200":
+          description: Employee updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeResponse'
+      security:
+      - basicAuth: []
+    delete:
+      tags:
+      - Employees
+      summary: Delete an employee
+      operationId: delete
+      parameters:
+      - name: id
+        in: path
+        description: Employee id
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      responses:
+        "204":
+          description: Employee deleted
+        "500":
+          description: Unexpected error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Employee not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Missing or invalid credentials
+      security:
+      - basicAuth: []
+  /employees:
+    get:
+      tags:
+      - Employees
+      summary: List all employees
+      description: Returns every registered employee ordered by id
+      operationId: findAll
+      responses:
+        "500":
+          description: Unexpected error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Missing or invalid credentials
+        "200":
+          description: Employees found (empty list if there are none)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmployeeResponse'
+      security:
+      - basicAuth: []
+    post:
+      tags:
+      - Employees
+      summary: Create one or several employees
+      description: "Accepts a single employee object or an array of employees. The\
+        \ batch is atomic: if any employee is invalid, none is created."
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              maxItems: 100
+              minItems: 0
+              type: array
+              items:
+                $ref: '#/components/schemas/EmployeeRequest'
+            examples:
+              Several employees:
+                description: Several employees
+                value:
+                - firstName: Juan
+                  middleName: Carlos
+                  paternalLastName: Pérez
+                  maternalLastName: López
+                  age: 30
+                  sex: MALE
+                  birthDate: 15-03-1994
+                  position: Backend Developer
+                - firstName: Ana
+                  paternalLastName: García
+                  age: 28
+                  sex: FEMALE
+                  birthDate: 02-07-1996
+                  position: QA Engineer
+                  active: true
+              Single employee:
+                description: Single employee
+                value:
+                  firstName: Luis
+                  paternalLastName: Ramírez
+                  maternalLastName: Soto
+                  age: 41
+                  sex: MALE
+                  birthDate: 20-11-1983
+                  position: Tech Lead
+        required: true
+      responses:
+        "201":
+          description: Employees created
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmployeeResponse'
+        "500":
+          description: Unexpected error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Missing or invalid credentials
+        "400":
+          description: Invalid or malformed data
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - basicAuth: []
+  /employees/search:
+    get:
+      tags:
+      - Employees
+      summary: Search employees by name
+      description: "Partial, case-insensitive match on first name, middle name or\
+        \ either last name"
+      operationId: searchByName
+      parameters:
+      - name: name
+        in: query
+        description: Text to look for
+        required: true
+        schema:
+          type: string
+        example: per
+      responses:
+        "500":
+          description: Unexpected error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Missing or invalid credentials
+        "400":
+          description: The name parameter is missing or blank
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "200":
+          description: Matching employees (empty list if none match)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmployeeResponse'
+      security:
+      - basicAuth: []
+components:
+  schemas:
+    EmployeeUpdateRequest:
+      type: object
+      properties:
+        firstName:
+          maxLength: 50
+          minLength: 0
+          pattern: "^\\p{L}[\\p{L} '.-]*$"
+          type: string
+          example: Juan
+        middleName:
+          maxLength: 50
+          minLength: 0
+          pattern: "^\\p{L}[\\p{L} '.-]*$"
+          type: string
+          example: Carlos
+        paternalLastName:
+          maxLength: 50
+          minLength: 0
+          pattern: "^\\p{L}[\\p{L} '.-]*$"
+          type: string
+          example: Pérez
+        maternalLastName:
+          maxLength: 50
+          minLength: 0
+          pattern: "^\\p{L}[\\p{L} '.-]*$"
+          type: string
+          example: López
+        age:
+          maximum: 100
+          minimum: 18
+          type: integer
+          format: int32
+          example: 31
+        sex:
+          type: string
+          example: MALE
+          enum:
+          - MALE
+          - FEMALE
+          - OTHER
+        birthDate:
+          pattern: dd-MM-yyyy
+          type: string
+          example: 15-03-1994
+        position:
+          maxLength: 100
+          minLength: 0
+          pattern: .*\S.*
+          type: string
+          example: Senior Backend Developer
+        active:
+          type: boolean
+          example: false
+      description: Fields to update. Omitted or null fields are left unchanged
+    ErrorResponse:
+      type: object
+      properties:
+        title:
+          type: string
+          example: Not Found
+        status:
+          type: integer
+          format: int32
+          example: 404
+        detail:
+          type: string
+          example: Employee with id 99 was not found
+        instance:
+          type: string
+          example: /employees/99
+        requestId:
+          type: string
+          example: 6f1c2a9e-3c1d-4b8e-9f3a-2d4c5b6a7e8f
+        timestamp:
+          type: string
+          format: date-time
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldError'
+      description: Standard error response
+    FieldError:
+      type: object
+      properties:
+        field:
+          type: string
+          example: firstName
+        message:
+          type: string
+          example: is required
+      description: A single invalid field
+    EmployeeResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        firstName:
+          type: string
+          example: Juan
+        middleName:
+          type: string
+          example: Carlos
+        paternalLastName:
+          type: string
+          example: Pérez
+        maternalLastName:
+          type: string
+          example: López
+        age:
+          type: integer
+          format: int32
+          example: 30
+        sex:
+          type: string
+          example: MALE
+          enum:
+          - MALE
+          - FEMALE
+          - OTHER
+        birthDate:
+          pattern: dd-MM-yyyy
+          type: string
+          example: 15-03-1994
+        position:
+          type: string
+          example: Backend Developer
+        createdAt:
+          pattern: dd-MM-yyyy HH:mm:ss
+          type: string
+          description: Set automatically by the system when the employee is created
+          example: 26-11-2026 10:15:30
+        active:
+          type: boolean
+          example: true
+      description: Employee as returned by the API
+    EmployeeRequest:
+      required:
+      - age
+      - birthDate
+      - firstName
+      - paternalLastName
+      - position
+      - sex
+      type: object
+      properties:
+        firstName:
+          maxLength: 50
+          minLength: 0
+          pattern: "^\\p{L}[\\p{L} '.-]*$"
+          type: string
+          example: Juan
+        middleName:
+          maxLength: 50
+          minLength: 0
+          pattern: "^\\p{L}[\\p{L} '.-]*$"
+          type: string
+          example: Carlos
+        paternalLastName:
+          maxLength: 50
+          minLength: 0
+          pattern: "^\\p{L}[\\p{L} '.-]*$"
+          type: string
+          example: Pérez
+        maternalLastName:
+          maxLength: 50
+          minLength: 0
+          pattern: "^\\p{L}[\\p{L} '.-]*$"
+          type: string
+          example: López
+        age:
+          maximum: 100
+          minimum: 18
+          type: integer
+          format: int32
+          example: 30
+        sex:
+          type: string
+          example: MALE
+          enum:
+          - MALE
+          - FEMALE
+          - OTHER
+        birthDate:
+          pattern: dd-MM-yyyy
+          type: string
+          example: 15-03-1994
+        position:
+          maxLength: 100
+          minLength: 0
+          type: string
+          example: Backend Developer
+        active:
+          type: boolean
+          description: Defaults to true when omitted
+          example: true
+      description: Data required to register a new employee
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic

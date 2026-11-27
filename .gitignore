@@ -1,0 +1,16 @@
+target/
+logs/
+*.log
+
+.env
+
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.DS_Store
+
+# Local helper scripts (not part of the deliverable)
+scripts/
